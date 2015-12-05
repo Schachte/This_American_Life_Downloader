@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os
 import feedparser
 import re
@@ -7,6 +8,10 @@ import sys
 from BeautifulSoup import BeautifulSoup
 import urllib2
 import yagmail
+import time
+
+#ADD CREDENTIALS TO THE my_credentials.py file
+import my_credentials as CREDS
 
 #####################################################################################################################
 # Scans the TALPodcast Feed for new episodes.
@@ -14,14 +19,16 @@ import yagmail
 # Episode temporarily stores on hard drive and then emails to specified email
 #####################################################################################################################
 
+#TO:DO - Get rid of repetitive functions and build generic emailer function (busy with finals, haven't coded yet)
+
 #Email of your Gmail account to establish a valid SMTP connection with Gmail Servers
-GMAIL_USER = "EMAIL_HERE@gmail.com"
+GMAIL_USER = CREDS.american_life_username
 
 #Password of your Gmail account to establish a valid SMTP connection with Gmail Servers
-GMAIL_PASSWORD = "PASSWORD_HERE"
+GMAIL_PASSWORD = CREDS.american_life_password
 
 #This is the person that will receive all of the mp3 files
-RECIPIENT_USER_EMAIL = "EMAIL_TO_SEND_FILE_TO@gmail.com"
+RECIPIENT_USER_EMAIL = CREDS.american_life_recipient
 
 #Don't change this unless you know what you're doing
 DESKTOP_FOLDER = os.getcwd()
@@ -60,7 +67,7 @@ def retrieve_random(max_number, repeat_query_string):
     base_redirect_url = 'http://audio.thisamericanlife.org/jomamashouse/ismymamashouse/%d.mp3' %(random_podcast_episode)
 
     #Whether or not to continue (hitting enter will query a different episode)
-    user_response = raw_input("Would you like to download This American Life Episode: %d? y/n/quit"%(random_podcast_episode))
+    user_response = raw_input("Would you like to download This American Life Episode: %d? y/n/quit: "%(random_podcast_episode))
 
     if (user_response == "y"):
         os.system('''
@@ -224,6 +231,93 @@ def retrieve_latest():
 
     ''')
 
+def retrieve_by_user_specified(episode, max_episode_count):
+
+    if (episode > max_episode_count):
+        print("Sorry, you cannot enter more than %d episodes"%(max_episode_count))
+    else:
+        #Get a random podcast episode
+        user_podcast_search_string = episode
+
+        #Query first random url
+        base_redirect_url = 'http://audio.thisamericanlife.org/jomamashouse/ismymamashouse/%d.mp3' %(user_podcast_search_string)
+
+        #Whether or not to continue (hitting enter will query a different episode)
+        user_response = raw_input("Would you like to download This American Life Episode: %d? y/n/quit: "%(user_podcast_search_string))
+
+        if (user_response == "y"):
+            os.system('''
+            echo ""
+            echo ""
+            echo "*****************************************************"
+            echo "CHECKING RANDOM VERSION OF TAL....."
+            echo "RANDOM VERSION FOUND..."
+            echo "DOWNLOAD PODCAST..."
+            echo "*****************************************************"
+            echo ""
+            echo ""
+            ''')
+
+            #DL file_name off base_url
+            os.system('curl -O %s'%(base_redirect_url))
+
+            if (not os.path.exists("This_American_Life")):
+                os.system("mkdir This_American_Life")
+
+            #Change this directory to match your user setup environment.
+            #DL's to root dir of script and moves into folder of same dir with pre-formatted naming convention
+            os.system("mv *.mp3 %s/This_American_Life/episode_%s_TAL.mp3"%(DESKTOP_FOLDER, user_podcast_search_string))
+
+            print('''
+
+            *********************************************************
+            *                                                       *
+                  CURRENTLY COMPRESSING AUDIO FILE FOR SENDING
+            *                                                       *
+            **********************************************************
+
+            ''')
+
+            #Zip the file to attach
+            os.system("lame --mp3input -m m --resample 24 %s/This_American_Life/episode_%s_TAL.mp3"%(DESKTOP_FOLDER, user_podcast_search_string))
+
+            print('''
+
+            **************************************************************
+            *                                                            *
+                EMAILING THIS AMERICAN LIFE EPISODE #%s, please wait!
+            *                                                            *
+            **************************************************************
+
+            ''' %(user_podcast_search_string))
+
+
+            yag = yagmail.SMTP(GMAIL_USER, GMAIL_PASSWORD)
+            contents = ['Your requested audio MP3 has been sent to you successfully! Please download the attached MP3 File',
+                        'You can find an audio file attached.', '%s/This_American_Life/episode_%s_TAL.mp3.mp3'%(DESKTOP_FOLDER, user_podcast_search_string)]
+            yag.send(RECIPIENT_USER_EMAIL, 'This American Life Podcast Episode!', contents)
+            os.system("rm -r This_American_Life/*.mp3")
+
+            print('''
+
+            **************************************************************
+            *                                                            *
+                  EMAIL SENT AND DOWNLOAD DIRECTORY HAS BEEN CLEARED
+            *                                                            *
+            **************************************************************
+
+            ''')
+
+        #If user chooses to exit the system
+        elif (user_response == "quit"):
+            print("Exiting...")
+            sys.exit()
+
+        elif (user_response == "n"):
+            new_episode = raw_input("Please enter the new episode:  ")
+            new_episode = int(new_episode)
+            retrieve_by_user_specified(new_episode, max_episode_count)
+
 
 
 #Main to execute following functions above
@@ -252,8 +346,18 @@ ______         _               _    ______                    _                 
 
     ''')
 
+    #Load up web call for max episode count
+    print("Please wait, loading total This American Life Podcast Archive", end = '')
+    sys.stdout.flush()
 
-    user_choice = raw_input("Would you like to:\n(1) Retrieve Most Recent Podcast\n(2) Retrieve Random Podcast\n(3) Quit\n")
+    #query the most recent episode
+    max_episode_count = retrieve_max_podcast_count()
+
+    #Ensure you're flushing out all chars from the buffer
+    print("\rAll Podcasts Loaded....Please Continue                                                    \n\n")
+    sys.stdout.flush()
+
+    user_choice = raw_input("Would you like to:\n(1) Retrieve Most Recent Podcast\n(2) Retrieve Random Podcast\n(3) Enter User-Specified Episode Number\n(4) Quit\n")
 
     #Download the most recent TAL episode
     if (user_choice == "1"):
@@ -261,14 +365,16 @@ ______         _               _    ______                    _                 
 
     #Download a random episode
     elif (user_choice == "2"):
-        #query the most recent episode
-        max_episode_count = retrieve_max_podcast_count()
 
         #Retrieve a random episode from the website
         retrieve_random(int(max_episode_count), 1)
 
-        #exit program
+    #Search by a user specified number
     elif (user_choice == "3"):
+        user_episode_search = raw_input("What episode would you like to download of This American Life?:   ")
+        retrieve_by_user_specified(int(user_episode_search), int(max_episode_count))
+        #exit program
+    elif (user_choice == "4"):
             sys.exit()
     else:
         print("Invalid..\n")
