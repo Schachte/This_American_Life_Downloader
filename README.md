@@ -15,4 +15,9 @@ The program will download the mp3, compress it using LAME, email the compressed 
 
 
 ![img1](http://i.imgur.com/VygWaDe.png)
+<hr>
 ![img2](http://i.imgur.com/09NRfrk.png)
+<hr>
+![img3](http://i.imgur.com/IIZjhy3.png)
+<hr>
+![img4](http://i.imgur.com/FNJIvTe.png)
