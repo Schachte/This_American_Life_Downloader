@@ -1,5 +1,6 @@
 #Credentials for TAL Podcast Tool
 
-american_life_username="EMAIL"
-american_life_password="PASSWORD"
-american_life_recipient="RECIPIENT_EMAIL"
+american_life_username="ENTER_GMAIL_EMAIL"
+american_life_password="ENTER_GMAIL_PASS"
+american_life_recipient="ENTER_RECIPIENT_EMAIL"
+american_life_podcast_directory_name="ENTER_TEMP_DOWNLOAD_DIRECTORY_FOR_PODCASTS"
